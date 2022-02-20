@@ -138,7 +138,7 @@ async function parsePlayTransaction(row) {
 }
 
 async function rebuildPlayerStats(player) {
-    await sqlite.run('delete from player_stats where id=\''+player+'\'');
+    await sqlite.run('delete from player_stats where id=\'' + player + '\'');
     let stats = await sqlite.get_all('select sum(win) as win,count(*) as total,game_id from games where player=? group by game_id', [player]);
     if (stats && ('data' in stats)) {
         for (let row of stats.data) {
@@ -165,12 +165,18 @@ async function getPlayerStats(player) {
         out.total.plays = total;
         out.total.wins = wins;
         out.total.ratio = Math.round(wins / total * 100) / 100;
-        let nft = await sqlite.get_all('select distinct player_id from games_players p, games g where g.id=p.games_id and g.player=?',[player]);
+        let nft = await sqlite.get_all('select distinct player_id from games_players p, games g where g.id=p.games_id and g.player=?', [player]);
         out.nfts = nft.data;
     }
     out.player = player;
     out.stats = stats.data;
+    out.currentNTF = await getPlayerNFT(player);
     return out;
+}
+
+async function getPlayerNFT(player) {
+    let contract = new web3.eth.Contract(abis.player.player, settings.squid.player);
+    return await contract.methods.arrayUserPlayers(player).call();
 }
 
 async function getTransaction(hash) {
