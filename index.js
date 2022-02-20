@@ -11,7 +11,6 @@ const app = new Koa()
 const router = new Router()
 const port = process.env.PORT || 4000
 const Web3 = require('web3');
-const MultiCall = require('@indexed-finance/multicall');
 const axios = require("axios");
 const crypto = require("crypto");
 const fs = require("fs");
@@ -35,9 +34,6 @@ let logger = createLogger({
     exceptionHandlers: [new transports.File({filename: "./logs/exceptions.log"})],
     rejectionHandlers: [new transports.File({filename: "./logs/rejections.log"})],
 });
-
-//sample
-//logger.child({"azz":"21"}).info("Started");
 
 let web3, currentBlock;
 
@@ -79,6 +75,10 @@ router.get('/stats/:player', async (ctx) => {
     ctx.body = await getPlayerStats(player);
 })
 
+/**
+ * This should be used to download archived data or after restart.
+ * In production mode all data should be gathered and updated in realtime (not implemented)
+ */
 router.get('/parser', async (ctx) => {
     let cnt = 1;
     for (let block = settings.squid.block; block < currentBlock; block = block + 10000) {
@@ -149,7 +149,7 @@ async function rebuildPlayerStats(player) {
 
 async function getPlayerStats(player) {
     let out = {};
-    //todo remove from here
+    //todo remove from here, should be triggered after each player game
     await rebuildPlayerStats(player);
     let stats = await sqlite.get_all('select * from player_stats where id=?', [player]);
     let total = 0;
@@ -170,13 +170,34 @@ async function getPlayerStats(player) {
     }
     out.player = player;
     out.stats = stats.data;
-    out.currentNTF = await getPlayerNFT(player);
+    //todo should be stored in DB for analysis
+    out.currentNFT = await getPlayerNFT(player);
+    out.balance = 0;
+    if (out.currentNFT.length > 0) {
+        let total = 0;
+        for (let row of out.currentNFT) {
+            total += (parseInt(row[1]) + 1);
+        }
+        out.balance = Math.round(total / out.currentNFT.length);
+    }
+    out.won = await getPlayerWonAmounts(player);
+    //todo calculate real data, can't do it right now bc this requires plenty of time to download
+    out.regulars = Math.floor(Math.random() * 40);
+    out.unusedNFT = Math.floor(Math.random() * 15);
     return out;
 }
 
 async function getPlayerNFT(player) {
     let contract = new web3.eth.Contract(abis.player.player, settings.squid.player);
     return await contract.methods.arrayUserPlayers(player).call();
+}
+
+async function getPlayerWonAmounts(player) {
+    let data = await sqlite.get_all('select token,sum(amount/1e18) as sum from games_rewards r, games g where g.id=r.games_id and g.player=? group by token', [player]);
+    if (data && ('data' in data)) {
+        return data.data;
+    }
+    return [];
 }
 
 async function getTransaction(hash) {
