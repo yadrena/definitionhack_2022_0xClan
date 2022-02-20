@@ -184,6 +184,7 @@ async function getPlayerStats(player) {
     //todo calculate real data, can't do it right now bc this requires plenty of time to download
     out.regulars = Math.floor(Math.random() * 40);
     out.unusedNFT = Math.floor(Math.random() * 15);
+    out.invested = Math.floor(Math.random() * 1550);
     return out;
 }
 
