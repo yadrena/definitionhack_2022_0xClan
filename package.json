@@ -1,0 +1,19 @@
+{
+  "name": "GGRating",
+  "version": "1.0.0",
+  "dependencies": {
+    "@indexed-finance/multicall": "^2.0.0",
+    "@koa/router": "^10.1.1",
+    "aa-sqlite": "^1.0.29",
+    "abi-decoder": "^2.4.0",
+    "axios": "^0.25.0",
+    "koa": "^2.13.4",
+    "koa-body": "^4.2.0",
+    "koa-json": "^2.0.2",
+    "md5": "^2.3.0",
+    "web3": "^1.6.1",
+    "winston": "^3.4.0",
+    "winston-daily-rotate-file": "^4.5.5",
+    "sqlite3": "^5.0.2"
+  }
+}
