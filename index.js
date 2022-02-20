@@ -3,6 +3,7 @@
 const Koa = require('koa')
 const Router = require('@koa/router')
 const json = require('koa-json')
+const cors = require('@koa/cors');
 const koaBody = require('koa-body');
 const settings = require('./settings').mainnet;
 const abis = require('./abis');
@@ -38,6 +39,7 @@ let logger = createLogger({
 let web3, currentBlock;
 
 app
+    .use(cors({"Access-Control-Allow-Origin":"*"}))
     .use(koaBody())
     .use(router.routes())
     .use(router.allowedMethods())
