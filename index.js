@@ -39,7 +39,7 @@ let logger = createLogger({
 let web3, currentBlock;
 
 app
-    .use(cors({"Access-Control-Allow-Origin":"*"}))
+    .use(cors({"Access-Control-Allow-Origin": "*"}))
     .use(koaBody())
     .use(router.routes())
     .use(router.allowedMethods())
@@ -75,6 +75,10 @@ router.get('/stats/:player', async (ctx) => {
         player = 'nan';
     }
     ctx.body = await getPlayerStats(player);
+})
+
+router.get('/top', async (ctx) => {
+    ctx.body = await getTop();
 })
 
 /**
@@ -113,6 +117,19 @@ router.get('/parser', async (ctx) => {
     ctx.body = 'OK';
 
 })
+
+async function getTop() {
+    let top = await sqlite.get_all('select player,sum(win) as win,count(*) as total,cast(sum(win) as real)/cast(count(*) as real) as rate from games group by player order by total desc,rate desc limit 10 ;');
+    if (top && ('data' in top)) {
+
+        for(let i in top.data){
+            top.data[i]['full'] = await getPlayerStats(top.data[i].player);
+        }
+        return top.data;
+    } else {
+        return [];
+    }
+}
 
 async function parsePlayTransaction(row) {
     let data = await cachedTransactionInfo(row.hash);
@@ -169,6 +186,7 @@ async function getPlayerStats(player) {
         out.total.ratio = Math.round(wins / total * 100) / 100;
         let nft = await sqlite.get_all('select distinct player_id from games_players p, games g where g.id=p.games_id and g.player=?', [player]);
         out.nfts = nft.data;
+        out.firstSeen = await sqlite.get('select min(date) as timestamp from games where player=?',[player]);
     }
     out.player = player;
     out.stats = stats.data;
